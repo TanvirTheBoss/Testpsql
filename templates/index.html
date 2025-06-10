@@ -56,6 +56,20 @@
   th {
     background-color: #3498db;
     color: white;
+    cursor: pointer;
+  }
+  th:hover {
+    background-color: #2980b9;
+  }
+  .search-container {
+    margin-bottom: 15px;
+  }
+  .search-container input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
   }
 </style>
 </head>
@@ -77,33 +91,103 @@
 </form>
 
 <h2>Students List</h2>
-<div><Search><input type="text" placeholder="Search here"></Search></div>
+<div class="search-container">
+  <input type="text" id="searchInput" placeholder="Search by name or email..." oninput="filterStudents()">
+</div>
 <table id="studentsTable">
   <thead>
-    <tr><th>ID</th><th>Name</th><th>Age</th><th>Email</th></tr>
+    <tr>
+      <th onclick="sortStudents('id')">ID ▼</th>
+      <th onclick="sortStudents('name')">Name</th>
+      <th onclick="sortStudents('age')">Age</th>
+      <th onclick="sortStudents('email')">Email</th>
+    </tr>
   </thead>
   <tbody></tbody>
 </table>
 
 <script>
+let allStudents = []; // Store all students for filtering
+let currentSortField = 'id';
+let sortDirection = 'asc';
+
 async function fetchStudents() {
   const res = await fetch('/students');
   const data = await res.json();
   if (data.status === "success") {
-    const tbody = document.querySelector("#studentsTable tbody");
-    tbody.innerHTML = "";
-    data.students.forEach(s => {
-      const row = `<tr>
-        <td>${s.id}</td>
-        <td>${s.name}</td>
-        <td>${s.age}</td>
-        <td>${s.email}</td>
-      </tr>`;
-      tbody.insertAdjacentHTML('beforeend', row);
-    });
+    allStudents = data.students;
+    renderStudents(allStudents);
   } else {
     alert("Error loading students: " + data.message);
   }
+}
+
+function renderStudents(students) {
+  const tbody = document.querySelector("#studentsTable tbody");
+  tbody.innerHTML = "";
+  
+  // Sort students before rendering
+  const sortedStudents = [...students].sort((a, b) => {
+    if (currentSortField === 'id' || currentSortField === 'age') {
+      return sortDirection === 'asc' 
+        ? a[currentSortField] - b[currentSortField]
+        : b[currentSortField] - a[currentSortField];
+    } else {
+      if (a[currentSortField] < b[currentSortField]) {
+        return sortDirection === 'asc' ? -1 : 1;
+      }
+      if (a[currentSortField] > b[currentSortField]) {
+        return sortDirection === 'asc' ? 1 : -1;
+      }
+      return 0;
+    }
+  });
+
+  sortedStudents.forEach(s => {
+    const row = `<tr>
+      <td>${s.id}</td>
+      <td>${s.name}</td>
+      <td>${s.age}</td>
+      <td>${s.email}</td>
+    </tr>`;
+    tbody.insertAdjacentHTML('beforeend', row);
+  });
+
+  // Update sort indicator in header
+  const headers = document.querySelectorAll('th');
+  headers.forEach(header => {
+    header.innerHTML = header.innerHTML.replace(' ▼', '').replace(' ▲', '');
+    if (header.textContent.includes(currentSortField)) {
+      const sortSymbol = sortDirection === 'asc' ? ' ▲' : ' ▼';
+      header.innerHTML += sortSymbol;
+    }
+  });
+}
+
+function filterStudents() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  if (!searchTerm) {
+    renderStudents(allStudents);
+    return;
+  }
+
+  const filtered = allStudents.filter(student => 
+    student.name.toLowerCase().includes(searchTerm) || 
+    student.email.toLowerCase().includes(searchTerm)
+  );
+  renderStudents(filtered);
+}
+
+function sortStudents(field) {
+  if (currentSortField === field) {
+    // Toggle direction if same field clicked again
+    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    // New field, default to ascending
+    currentSortField = field;
+    sortDirection = 'asc';
+  }
+  renderStudents(allStudents);
 }
 
 async function submitForm(e) {
