@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Student Data Input System</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 1rem auto;
+    padding: 0 15px;
+  }
+  h1 {
+    text-align: center;
+    color: #2c3e50;
+  }
+  form {
+    margin-bottom: 20px;
+    background: #f1f1f1;
+    padding: 15px;
+    border-radius: 5px;
+  }
+  input[type=text], input[type=number], input[type=email] {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0 15px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  button {
+    background-color: #3498db;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    width: 100%;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #2980b9;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table, th, td {
+    border: 1px solid #ddd;
+  }
+  th, td {
+    padding: 10px;
+    text-align: left;
+  }
+  th {
+    background-color: #3498db;
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<h1>Student Data Input System</h1>
+
+<form id="studentForm" onsubmit="submitForm(event)">
+  <label for="name">Name:</label>
+  <input type="text" id="name" placeholder="Student Name" required />
+
+  <label for="age">Age:</label>
+  <input type="number" id="age" placeholder="Age" min="1" required />
+
+  <label for="email">Email:</label>
+  <input type="email" id="email" placeholder="Email" required />
+
+  <button type="submit">Add Student</button>
+</form>
+
+<h2>Students List</h2>
+<div><Search><input type="text" placeholder="Search here"></Search></div>
+<table id="studentsTable">
+  <thead>
+    <tr><th>ID</th><th>Name</th><th>Age</th><th>Email</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+async function fetchStudents() {
+  const res = await fetch('/students');
+  const data = await res.json();
+  if (data.status === "success") {
+    const tbody = document.querySelector("#studentsTable tbody");
+    tbody.innerHTML = "";
+    data.students.forEach(s => {
+      const row = `<tr>
+        <td>${s.id}</td>
+        <td>${s.name}</td>
+        <td>${s.age}</td>
+        <td>${s.email}</td>
+      </tr>`;
+      tbody.insertAdjacentHTML('beforeend', row);
+    });
+  } else {
+    alert("Error loading students: " + data.message);
+  }
+}
+
+async function submitForm(e) {
+  e.preventDefault();
+  const name = document.getElementById('name').value.trim();
+  const age = parseInt(document.getElementById('age').value);
+  const email = document.getElementById('email').value.trim();
+
+  if (!name || !age || !email) {
+    alert("Please fill all fields");
+    return;
+  }
+
+  const res = await fetch('/students', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name, age, email })
+  });
+
+  const data = await res.json();
+
+  if (data.status === "success") {
+    alert(data.message);
+    document.getElementById('studentForm').reset();
+    fetchStudents();
+  } else {
+    alert("Error: " + data.message);
+  }
+}
+
+// Load students on page load
+fetchStudents();
+</script>
+
+</body>
+</html>
